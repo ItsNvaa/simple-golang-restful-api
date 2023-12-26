@@ -5,5 +5,5 @@ import "strconv"
 func ValidateRequestIdParams(id string) bool {
 	_, err := strconv.Atoi(id)
 
-	return err == nil
+	return err != nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang-restful-api/utils"
 	"gorm.io/gorm"
+	"io"
 )
 import "net/http"
 import "golang-restful-api/models"
@@ -26,11 +27,8 @@ func GetSingleProduct(c *gin.Context) {
 
 	var isValidRequestid = utils.ValidateRequestIdParams(id)
 
-	if !isValidRequestid {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"TypeError": "Bad Request",
-			"messege":   "The Request Id Must Be Numberic",
-		})
+	if isValidRequestid {
+		utils.ReturnNumbericExpection(c)
 		return
 	}
 
@@ -40,16 +38,11 @@ func GetSingleProduct(c *gin.Context) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-				"TypeError": "Not Found",
-				"messege":   "The Data Wasn't Found",
-			})
+			utils.ReturnNotFoundException(c)
 			return
 		}
 
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"TypeError": "Internal Server Error",
-		})
+		utils.ReturnInternalServerExpection(c)
 		return
 	}
 
@@ -57,4 +50,82 @@ func GetSingleProduct(c *gin.Context) {
 		"product": product,
 		"status":  "OK",
 	})
+}
+
+func CreateProduct(c *gin.Context) {
+	var productRequestBody models.Product
+
+	err := c.ShouldBindJSON(&productRequestBody)
+
+	if err != nil {
+		if err == io.EOF {
+			utils.ReturnEmptyRequestBody(c)
+			return
+		}
+
+		utils.ReturnInvalidRequestBodyType(c)
+		return
+	}
+
+	if err == nil {
+		configs.DB.Create(&productRequestBody)
+	}
+
+	utils.ReturnOKResponse(c, "Created", http.StatusCreated)
+}
+
+func UpdateProduct(c *gin.Context) {
+	var id = c.Param("id")
+
+	var productRequestBody models.Product
+
+	err := c.ShouldBindJSON(&productRequestBody)
+
+	if err != nil {
+		if err == io.EOF {
+			utils.ReturnEmptyRequestBody(c)
+			return
+		}
+
+		utils.ReturnInvalidRequestBodyType(c)
+		return
+	}
+
+	var validateRequestIdResult = utils.ValidateRequestIdParams(id)
+
+	if validateRequestIdResult {
+		utils.ReturnNumbericExpection(c)
+		return
+	}
+
+	var updateProduct = configs.DB.Model(&productRequestBody).Where("id = ?", id).Updates(&productRequestBody)
+
+	if updateProduct.RowsAffected == 0 {
+		utils.ReturnNotFoundException(c)
+		return
+	}
+
+	utils.ReturnOKResponse(c, "Updated", http.StatusOK)
+}
+
+func DeleteProduct(c *gin.Context) {
+	var id = c.Param("id")
+
+	var product models.Product
+
+	var validateRequestIdResult = utils.ValidateRequestIdParams(id)
+
+	if validateRequestIdResult {
+		utils.ReturnNumbericExpection(c)
+		return
+	}
+
+	var deleteProduct = configs.DB.Delete(&product, id)
+
+	if deleteProduct.RowsAffected == 0 {
+		utils.ReturnNotFoundException(c)
+		return
+	}
+
+	utils.ReturnOKResponse(c, "Deleted", http.StatusOK)
 }

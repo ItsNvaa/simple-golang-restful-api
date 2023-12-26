@@ -13,6 +13,9 @@ func main() {
 	r.GET("/ping", controllers.Pong)
 	r.GET("/products", controllers.GetProducts)
 	r.GET("/product/:id", controllers.GetSingleProduct)
+	r.POST("/product", controllers.CreateProduct)
+	r.PATCH("/product/:id", controllers.UpdateProduct)
+	r.DELETE("/product/:id", controllers.DeleteProduct)
 
 	err := r.Run()
 	if err != nil {
